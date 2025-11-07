@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../Dashboard/Sidebar";
 import BottomNav from "../Dashboard/BottomNav";
-import Loader from "../Shared/Loader";
+import Loader from "../shared/Loader";
 
 export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true);
