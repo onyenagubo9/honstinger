@@ -15,7 +15,7 @@ export default function Loader() {
       <div className="relative w-40 h-40">
         {/* Moving logo */}
         <motion.img
-          src="/Honstinger-logo.png"
+          src="/honstinger-logo.png"
           alt="Honstinger Logo"
           animate={squarePath}
           transition={{
