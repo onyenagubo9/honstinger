@@ -1,11 +1,13 @@
 "use client";
+export const dynamic = "force-dynamic";
 
+import { Suspense } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, ArrowLeft, Banknote, User, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
-export default function TransferSuccessPage() {
+function TransferSuccessContent() {
   const params = useSearchParams();
   const amount = params.get("amount") || "0.00";
   const recipient = params.get("recipient") || "Recipient";
@@ -36,7 +38,7 @@ export default function TransferSuccessPage() {
           </p>
         </motion.div>
 
-        {/* Transaction Summary Card */}
+        {/* Transaction Summary */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -68,6 +70,7 @@ export default function TransferSuccessPage() {
           </div>
         </motion.div>
 
+        {/* Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -91,8 +94,18 @@ export default function TransferSuccessPage() {
 
       {/* Footer */}
       <p className="text-xs text-gray-400 mt-6">
-        Secured by <span className="font-semibold text-green-600">Honstinger</span> Banking © {new Date().getFullYear()}
+        Secured by{" "}
+        <span className="font-semibold text-green-600">Honstinger</span> Banking ©{" "}
+        {new Date().getFullYear()}
       </p>
     </main>
+  );
+}
+
+export default function TransferSuccessPage() {
+  return (
+    <Suspense fallback={<div className="text-center mt-20">Loading...</div>}>
+      <TransferSuccessContent />
+    </Suspense>
   );
 }
