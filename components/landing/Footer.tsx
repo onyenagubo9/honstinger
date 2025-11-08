@@ -20,7 +20,7 @@ export default function Footer() {
               B
             </div>
             <div>
-              <p className="font-semibold text-gray-900">Honstinger Bank</p>
+              <p className="font-semibold text-gray-900">FirstCBU Bank</p>
               <p className="text-xs text-gray-600">Modern banking redefined</p>
             </div>
           </div>
@@ -184,9 +184,9 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between text-xs text-gray-500">
-        <p>© {new Date().getFullYear()} GreenHarbor Bank. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} FirstCBU Bank. All rights reserved.</p>
         <p className="mt-3 md:mt-0">
-          Made with ❤️ by <span className="text-green-600 font-medium">GreenHarbor Dev Team</span>
+          Made with ❤️ by <span className="text-green-600 font-medium">FirstCBU Dev Team</span>
         </p>
       </div>
     </footer>

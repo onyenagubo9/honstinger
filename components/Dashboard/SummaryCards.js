@@ -4,34 +4,36 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebaseClient";
 
 export default function AccountBalance() {
   const [showBalance, setShowBalance] = useState(true);
-  const [balance, setBalance] = useState(0);
+  const [accountBalance, setAccountBalance] = useState(0);
   const [currency, setCurrency] = useState("USD");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes
+    // 🔐 Listen for auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
 
-        // Real-time updates (listens for balance changes)
+        // 📡 Real-time Firestore listener
         const unsubscribeUser = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const userData = docSnap.data();
-            setBalance(userData.balance || 0);
-            setCurrency(userData.currency || "USD");
+            setAccountBalance(userData.accountBalance ?? 0);
+            setCurrency(userData.currency ?? "USD");
+          } else {
+            setAccountBalance(0);
           }
           setLoading(false);
         });
 
         return () => unsubscribeUser();
       } else {
-        setBalance(0);
+        setAccountBalance(0);
         setCurrency("USD");
         setLoading(false);
       }
@@ -53,7 +55,7 @@ export default function AccountBalance() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.2 }}
-                className="text-3xl font-bold text-gray-400 tracking-tight"
+                className="text-2xl font-semibold text-gray-400 tracking-tight"
               >
                 Loading...
               </motion.p>
@@ -66,7 +68,7 @@ export default function AccountBalance() {
                 transition={{ duration: 0.2 }}
                 className="text-3xl font-bold text-gray-800 tracking-tight"
               >
-                {currency} {Number(balance).toLocaleString()}
+                {currency} {Number(accountBalance).toLocaleString()}
               </motion.p>
             ) : (
               <motion.p
@@ -82,7 +84,7 @@ export default function AccountBalance() {
             )}
           </AnimatePresence>
 
-          {/* 👁️ Toggle button */}
+          {/* 👁️ Toggle Visibility */}
           <button
             onClick={() => setShowBalance(!showBalance)}
             className="ml-2 text-gray-500 hover:text-green-600 transition"
@@ -97,7 +99,7 @@ export default function AccountBalance() {
         </div>
       </div>
 
-      {/* Optional: Add Funds Button */}
+      {/* 💰 Optional: Add Funds Button */}
       <button className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition">
         Add Funds
       </button>

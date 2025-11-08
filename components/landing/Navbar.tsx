@@ -30,7 +30,7 @@ export default function Navbar() {
             B
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-gray-900">Honstinger Bank</h1>
+            <h1 className="text-lg font-semibold text-gray-900">FirstCBU Bank</h1>
             <p className="text-xs text-gray-500 -mt-1">Modern banking redefined</p>
           </div>
         </Link>

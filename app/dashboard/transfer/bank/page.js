@@ -17,7 +17,6 @@ import {
 } from "firebase/firestore";
 import {
   Banknote,
-  CheckCircle,
   Loader2,
   ArrowLeft,
   CreditCard,
@@ -28,7 +27,7 @@ import { useRouter } from "next/navigation";
 
 export default function BankTransferPage() {
   const [user, setUser] = useState(null);
-  const [balance, setBalance] = useState(0);
+  const [accountBalance, setAccountBalance] = useState(0);
   const [recipientAcc, setRecipientAcc] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -38,7 +37,7 @@ export default function BankTransferPage() {
 
   const router = useRouter();
 
-  // ✅ Fetch and listen to user's balance in real-time
+  // ✅ Listen to user & accountBalance in real-time
   useEffect(() => {
     let unsubscribeSnapshot = null;
 
@@ -46,7 +45,7 @@ export default function BankTransferPage() {
       setLoadingUser(true);
       if (!loggedUser) {
         setUser(null);
-        setBalance(0);
+        setAccountBalance(0);
         setLoadingUser(false);
         return;
       }
@@ -60,7 +59,7 @@ export default function BankTransferPage() {
 
         if (snap.empty) {
           setUser(null);
-          setBalance(0);
+          setAccountBalance(0);
           setLoadingUser(false);
           return;
         }
@@ -72,7 +71,7 @@ export default function BankTransferPage() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setUser({ id: docSnap.id, ...data });
-            setBalance(data.balance ?? data.accountBalance ?? 0);
+            setAccountBalance(data.accountBalance ?? 0);
           }
           setLoadingUser(false);
         });
@@ -88,7 +87,7 @@ export default function BankTransferPage() {
     };
   }, []);
 
-  // ✅ Handle Transfer
+  // ✅ Handle transfer
   const handleTransfer = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -109,7 +108,7 @@ export default function BankTransferPage() {
       return;
     }
 
-    if (transferAmount > balance) {
+    if (transferAmount > accountBalance) {
       setMessage("❌ Insufficient funds.");
       return;
     }
@@ -138,6 +137,7 @@ export default function BankTransferPage() {
       const recipientId = recipientDoc.id;
       const recipientData = recipientDoc.data();
 
+      // ✅ Firestore Transaction
       await runTransaction(db, async (transaction) => {
         const senderRef = doc(db, "users", user.id);
         const recipientRef = doc(db, "users", recipientId);
@@ -148,25 +148,21 @@ export default function BankTransferPage() {
         if (!senderSnap.exists()) throw new Error("Sender not found");
         if (!recipientSnap.exists()) throw new Error("Recipient not found");
 
-        const senderData = senderSnap.data();
-        const recipientData = recipientSnap.data();
+        const senderBalance = senderSnap.data().accountBalance ?? 0;
+        const receiverBalance = recipientSnap.data().accountBalance ?? 0;
 
-        const senderBal = senderData.balance ?? senderData.accountBalance ?? 0;
-        const receiverBal = recipientData.balance ?? recipientData.accountBalance ?? 0;
+        if (senderBalance < transferAmount) throw new Error("Insufficient funds");
 
-        if (senderBal < transferAmount) throw new Error("Insufficient funds");
-
+        // Update both balances atomically
         transaction.update(senderRef, {
-          balance: senderBal - transferAmount,
-          accountBalance: senderBal - transferAmount,
+          accountBalance: senderBalance - transferAmount,
         });
         transaction.update(recipientRef, {
-          balance: receiverBal + transferAmount,
-          accountBalance: receiverBal + transferAmount,
+          accountBalance: receiverBalance + transferAmount,
         });
       });
 
-      // ✅ Record transactions
+      // ✅ Record both transactions
       await addDoc(collection(db, "transactions"), {
         userId: user.id,
         type: "Transfer - Outgoing",
@@ -202,6 +198,7 @@ export default function BankTransferPage() {
     }
   };
 
+  // ✅ UI Rendering
   return (
     <main className="min-h-screen bg-gray-50 px-4 sm:px-8 md:px-16 py-8">
       <motion.div
@@ -224,13 +221,13 @@ export default function BankTransferPage() {
           </div>
         </div>
 
-        {/* Page Title */}
+        {/* Title */}
         <div className="flex items-center mb-6">
           <Banknote className="w-6 h-6 text-green-600 mr-2" />
           <h1 className="text-2xl font-bold text-gray-800">Bank Transfer</h1>
         </div>
 
-        {/* Balance Card */}
+        {/* Account Balance Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -242,7 +239,7 @@ export default function BankTransferPage() {
               {loadingUser ? (
                 <Loader2 className="w-6 h-6 animate-spin inline-block" />
               ) : (
-                `$${Number(balance).toLocaleString()}`
+                `$${Number(accountBalance).toLocaleString()}`
               )}
             </p>
             <CreditCard className="w-6 h-6 opacity-70" />

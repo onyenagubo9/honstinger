@@ -26,7 +26,7 @@ import Link from "next/link";
 
 export default function BillsPage() {
   const [user, setUser] = useState(null);
-  const [balance, setBalance] = useState(0);
+  const [accountBalance, setAccountBalance] = useState(0);
   const [selectedBill, setSelectedBill] = useState(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
@@ -37,29 +37,13 @@ export default function BillsPage() {
 
   // ✅ Bill Categories
   const bills = [
-    {
-      name: "Electricity",
-      icon: Zap,
-      color: "bg-yellow-100 text-yellow-600",
-    },
-    {
-      name: "Internet",
-      icon: Wifi,
-      color: "bg-blue-100 text-blue-600",
-    },
-    {
-      name: "Water",
-      icon: Droplets,
-      color: "bg-sky-100 text-sky-600",
-    },
-    {
-      name: "Cable TV",
-      icon: Tv,
-      color: "bg-purple-100 text-purple-600",
-    },
+    { name: "Electricity", icon: Zap, color: "bg-yellow-100 text-yellow-600" },
+    { name: "Internet", icon: Wifi, color: "bg-blue-100 text-blue-600" },
+    { name: "Water", icon: Droplets, color: "bg-sky-100 text-sky-600" },
+    { name: "Cable TV", icon: Tv, color: "bg-purple-100 text-purple-600" },
   ];
 
-  // ✅ Load user info
+  // ✅ Load user info and account balance
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (loggedUser) => {
       if (loggedUser) {
@@ -68,12 +52,11 @@ export default function BillsPage() {
         if (snap.exists()) {
           const data = snap.data();
           setUser({ id: loggedUser.uid, ...data });
-          setBalance(data.balance ?? data.accountBalance ?? 0);
+          setAccountBalance(data.accountBalance ?? 0);
         }
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -98,7 +81,7 @@ export default function BillsPage() {
       return;
     }
 
-    if (payAmount > balance) {
+    if (payAmount > accountBalance) {
       setMessage("❌ Insufficient funds.");
       return;
     }
@@ -107,10 +90,10 @@ export default function BillsPage() {
 
     try {
       const userRef = doc(db, "users", user.id);
-      const newBalance = balance - payAmount;
+      const newBalance = accountBalance - payAmount;
 
-      // Update balance
-      await updateDoc(userRef, { accountBalance: newBalance, balance: newBalance });
+      // Update user's balance in Firestore
+      await updateDoc(userRef, { accountBalance: newBalance });
 
       // Log transaction
       await addDoc(collection(db, "transactions"), {
@@ -123,13 +106,13 @@ export default function BillsPage() {
         timestamp: serverTimestamp(),
       });
 
-      setBalance(newBalance);
+      setAccountBalance(newBalance);
       setSuccess(true);
       setMessage(`✅ ${selectedBill.name} bill payment successful!`);
       setAccountNumber("");
       setAmount("");
     } catch (error) {
-      console.error(error);
+      console.error("Bill payment error:", error);
       setMessage("❌ Payment failed. Try again.");
     } finally {
       setProcessing(false);
@@ -152,7 +135,9 @@ export default function BillsPage() {
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Link>
-          <h1 className="text-lg sm:text-xl font-bold text-gray-800">Pay Bills</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-800">
+            Pay Bills
+          </h1>
         </div>
 
         {/* Balance Card */}
@@ -162,10 +147,10 @@ export default function BillsPage() {
           transition={{ delay: 0.1 }}
           className="bg-green-50 border border-green-100 rounded-xl p-5 mb-6"
         >
-          <p className="text-sm text-gray-500">Available Balance</p>
+          <p className="text-sm text-gray-500">Available Account Balance</p>
           <div className="flex justify-between items-end mt-1">
             <p className="text-2xl font-bold text-gray-800">
-              {loading ? "Loading..." : `$${balance.toLocaleString()}`}
+              {loading ? "Loading..." : `$${accountBalance.toLocaleString()}`}
             </p>
             <CreditCard className="w-6 h-6 text-green-600" />
           </div>
@@ -187,9 +172,7 @@ export default function BillsPage() {
                   : "border-gray-200 hover:border-green-500"
               } transition`}
             >
-              <div
-                className={`p-3 rounded-full mb-2 ${bill.color}`}
-              >
+              <div className={`p-3 rounded-full mb-2 ${bill.color}`}>
                 <bill.icon className="w-6 h-6" />
               </div>
               <p className="text-sm font-medium text-gray-700">{bill.name}</p>
@@ -197,7 +180,7 @@ export default function BillsPage() {
           ))}
         </div>
 
-        {/* Bill Form */}
+        {/* Bill Payment Form */}
         {selectedBill && (
           <motion.form
             onSubmit={handlePayBill}
@@ -268,7 +251,7 @@ export default function BillsPage() {
           )}
         </AnimatePresence>
 
-        {/* Success State */}
+        {/* Success Animation */}
         {success && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

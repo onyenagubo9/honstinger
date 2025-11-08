@@ -14,12 +14,11 @@ import {
   getDoc,
 } from "firebase/firestore";
 import {
-  FileText,
   Download,
   ArrowLeft,
   Filter,
   Loader2,
-  Wallet,
+  CreditCard,
 } from "lucide-react";
 import Link from "next/link";
 import jsPDF from "jspdf";
@@ -27,12 +26,12 @@ import "jspdf-autotable";
 
 export default function StatementsPage() {
   const [user, setUser] = useState(null);
+  const [accountBalance, setAccountBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [balance, setBalance] = useState(0);
 
   const pdfRef = useRef();
 
@@ -47,16 +46,14 @@ export default function StatementsPage() {
       if (userSnap.exists()) {
         const userData = userSnap.data();
         setUser({ id: loggedUser.uid, ...userData });
-        setBalance(userData.balance ?? userData.accountBalance ?? 0);
+        setAccountBalance(userData.accountBalance ?? 0);
       }
 
-      // Fetch transactions
       const q = query(
         collection(db, "transactions"),
         where("userId", "==", loggedUser.uid),
         orderBy("timestamp", "desc")
       );
-
       const snap = await getDocs(q);
       const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setTransactions(data);
@@ -75,17 +72,17 @@ export default function StatementsPage() {
     return matchesType && matchesDate;
   });
 
-  // ✅ Generate PDF Statement
+  // ✅ Generate PDF
   const downloadStatement = () => {
-    const docPDF = new jsPDF();
-    docPDF.setFont("helvetica", "bold");
-    docPDF.text("Account Statement", 14, 20);
-    docPDF.setFontSize(11);
-    docPDF.setFont("helvetica", "normal");
-    docPDF.text(`Account Holder: ${user?.name || "—"}`, 14, 30);
-    docPDF.text(`Account Number: ${user?.accountNumber || "—"}`, 14, 37);
-    docPDF.text(`Currency: ${user?.currency || "USD"}`, 14, 44);
-    docPDF.text(`Generated: ${new Date().toLocaleString()}`, 14, 51);
+    const pdf = new jsPDF();
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Account Statement", 14, 20);
+    pdf.setFontSize(11);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Account Holder: ${user?.name || "—"}`, 14, 30);
+    pdf.text(`Account Number: ${user?.accountNumber || "—"}`, 14, 37);
+    pdf.text(`Available Balance: ${user?.currency || "USD"} ${accountBalance.toLocaleString()}`, 14, 44);
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 51);
 
     const tableData = filteredTransactions.map((t) => [
       new Date(t.timestamp?.toDate()).toLocaleDateString(),
@@ -95,13 +92,13 @@ export default function StatementsPage() {
       t.status || "Pending",
     ]);
 
-    docPDF.autoTable({
+    pdf.autoTable({
       startY: 60,
       head: [["Date", "Type", "Description", "Amount", "Status"]],
       body: tableData,
     });
 
-    docPDF.save(`Statement_${user?.accountNumber || "Account"}.pdf`);
+    pdf.save(`Statement_${user?.accountNumber || "Account"}.pdf`);
   };
 
   return (
@@ -120,15 +117,12 @@ export default function StatementsPage() {
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Link>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={downloadStatement}
-              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition"
-            >
-              <Download className="w-4 h-4 mr-1" /> Download PDF
-            </button>
-          </div>
+          <button
+            onClick={downloadStatement}
+            className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition"
+          >
+            <Download className="w-4 h-4 mr-2" /> Download PDF
+          </button>
         </div>
 
         {/* Account Info */}
@@ -149,9 +143,12 @@ export default function StatementsPage() {
               </p>
             </div>
             <div className="text-right">
-              <p className="text-gray-500 text-sm">Available Balance</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {user?.currency || "USD"} {balance.toLocaleString()}
+              <p className="text-gray-500 text-sm">Available Account Balance</p>
+              <p className="text-2xl font-bold text-gray-800 flex items-center justify-end space-x-1">
+                <span>
+                  {user?.currency || "USD"} {accountBalance.toLocaleString()}
+                </span>
+                <CreditCard className="w-5 h-5 text-green-600" />
               </p>
             </div>
           </div>
