@@ -20,7 +20,7 @@ export default function Sidebar() {
       <div>
         <div className="flex items-center space-x-3 mb-10">
           <img src="/honstinger-logo.png" alt="Logo" className="w-10 h-10 rounded-full" />
-          <h1 className="text-xl font-bold text-green-700">Honstinger</h1>
+          <h1 className="text-xl font-bold text-green-700">Firstcbu</h1>
         </div>
 
        {/* Navigation Links */}
