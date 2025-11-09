@@ -18,7 +18,7 @@ import {
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    siteName: "Honstinger Bank",
+    siteName: "FirstCBU Bank",
     defaultCurrency: "USD",
     maintenanceMode: false,
     transactionLimit: 5000,
