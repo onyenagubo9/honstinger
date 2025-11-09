@@ -11,6 +11,7 @@ import {
   Activity,
   DollarSign,
   MessageCircle,
+  ShieldCheck,
   ArrowRight,
 } from "lucide-react";
 
@@ -40,9 +41,9 @@ export default function AdminDashboard() {
   }, []);
 
   const items = [
-    { label: "Total Users", value: stats.users, icon: Users, color: "text-blue-600" },
-    { label: "Cards Issued", value: stats.cards, icon: CreditCard, color: "text-purple-600" },
-    { label: "Transactions", value: stats.tx, icon: Activity, color: "text-green-600" },
+    { label: "Total Users", value: stats.users, icon: Users, color: "bg-blue-50 text-blue-600" },
+    { label: "Cards Issued", value: stats.cards, icon: CreditCard, color: "bg-purple-50 text-purple-600" },
+    { label: "Transactions", value: stats.tx, icon: Activity, color: "bg-green-50 text-green-600" },
   ];
 
   const quickLinks = [
@@ -62,6 +63,14 @@ export default function AdminDashboard() {
       color: "bg-blue-100 text-blue-700",
       hover: "hover:bg-blue-200",
     },
+    {
+      title: "KYC Management",
+      desc: "Review and approve users’ verification documents.",
+      icon: ShieldCheck,
+      href: "/admin/kyc",
+      color: "bg-yellow-100 text-yellow-700",
+      hover: "hover:bg-yellow-200",
+    },
   ];
 
   return (
@@ -73,9 +82,13 @@ export default function AdminDashboard() {
         className="max-w-7xl mx-auto"
       >
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-1">Admin Dashboard</h1>
-          <p className="text-gray-500">Welcome back! Manage users, cards, and transactions efficiently.</p>
+        <div className="mb-10 text-center sm:text-left">
+          <h1 className="text-3xl font-bold text-gray-800 mb-1">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-500">
+            Welcome back 👋 — Manage users, cards, and transactions efficiently.
+          </p>
         </div>
 
         {/* Stats Section */}
@@ -84,16 +97,16 @@ export default function AdminDashboard() {
             <motion.div
               key={index}
               whileHover={{ scale: 1.03 }}
-              className="bg-white border border-gray-100 shadow-sm rounded-xl p-5 flex items-center"
+              className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 flex items-center transition"
             >
               <div
-                className={`p-3 rounded-lg bg-gray-50 mr-4 ${item.color}`}
+                className={`p-3 rounded-xl ${item.color} mr-4`}
               >
-                <item.icon className="w-7 h-7" />
+                <item.icon className="w-8 h-8" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">{item.label}</p>
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-3xl font-bold text-gray-800">
                   {loading ? "..." : item.value}
                 </h2>
               </div>
@@ -106,15 +119,19 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {quickLinks.map((link, index) => (
               <motion.div
                 key={index}
                 whileHover={{ y: -3 }}
                 whileTap={{ scale: 0.98 }}
-                className={`p-6 rounded-xl border border-gray-100 bg-white shadow-sm transition ${link.hover}`}
+                className={`p-6 rounded-2xl border border-gray-100 bg-white shadow-sm transition-all ${link.hover}`}
               >
-                <Link href={link.href} className="flex items-center justify-between">
+                <Link
+                  href={link.href}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center">
                     <div
                       className={`p-3 rounded-full mr-4 ${link.color}`}
@@ -122,7 +139,9 @@ export default function AdminDashboard() {
                       <link.icon className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{link.title}</h3>
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {link.title}
+                      </h3>
                       <p className="text-sm text-gray-500 mt-1">{link.desc}</p>
                     </div>
                   </div>

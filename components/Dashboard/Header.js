@@ -53,7 +53,7 @@ export default function Header() {
 
       <div className="flex items-center space-x-3">
         <img
-          src={userData?.avatar || "/profile.jpg"}
+          src={userData?.avatar || "/profile.png"}
           alt="Profile"
           className="w-10 h-10 rounded-full border border-green-200 object-cover"
         />

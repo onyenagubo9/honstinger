@@ -15,7 +15,7 @@ export default function EditProfilePage() {
     address: "",
     country: "",
   });
-  const [avatar, setAvatar] = useState("/profile.jpg");
+  const [avatar, setAvatar] = useState("/profile.png");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
