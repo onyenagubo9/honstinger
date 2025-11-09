@@ -104,7 +104,7 @@ export default function TransactionHistoryPage() {
     pdf.rect(0, 0, pageWidth, 60, "F");
     pdf.setTextColor("#ffffff");
     pdf.setFontSize(16);
-    pdf.text("Honstinger Bank - Transaction Receipt", 40, 38);
+    pdf.text("Firstcbu Bank - Transaction Receipt", 40, 38);
 
     // Add logo watermark
     const watermark = new Image();
@@ -118,7 +118,7 @@ export default function TransactionHistoryPage() {
     pdf.setFontSize(12);
     pdf.setTextColor("#444");
     pdf.text("Authorized Signature: ____________________", 40, 780);
-    pdf.text("Thank you for banking with Honstinger.", 40, 800);
+    pdf.text("Thank you for banking with Firstcbu.", 40, 800);
 
     pdf.save(`transaction_${selectedTransaction.id}.pdf`);
   };
@@ -271,7 +271,7 @@ export default function TransactionHistoryPage() {
                 <h2 className="text-lg font-bold text-gray-800">
                   Transaction Receipt
                 </h2>
-                <p className="text-sm text-gray-500">Honstinger Bank</p>
+                <p className="text-sm text-gray-500">FirstCBU Bank</p>
               </div>
 
               {/* Details */}
