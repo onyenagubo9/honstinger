@@ -87,7 +87,7 @@ export default function SignupPage() {
             Create Account
           </h1>
           <p className="text-gray-500 mt-1 text-sm">
-            Open your Honstinger Bank account in seconds
+            Open your FirstCBU Bank account in seconds
           </p>
         </motion.div>
 
