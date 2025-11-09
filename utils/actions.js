@@ -14,14 +14,14 @@ async function sendWelcomeEmail(userData, accountNumber) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: userData.email,
-        subject: "🎉 Welcome to Honstinger Bank",
+        subject: "🎉 Welcome to FirstCBU Bank",
         html: `
           <div style="background-color:#f6f8fb;padding:40px 0;font-family:Arial,Helvetica,sans-serif;">
             <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;
               overflow:hidden;box-shadow:0 4px 8px rgba(0,0,0,0.05);">
               
               <div style="background:#0b8f60;color:#fff;text-align:center;padding:25px 0;">
-                <h1 style="margin:0;font-size:24px;">Welcome to Honstinger Bank 🎉</h1>
+                <h1 style="margin:0;font-size:24px;">Welcome to FirstCBU Bank 🎉</h1>
               </div>
               
               <div style="padding:30px;">
@@ -30,7 +30,7 @@ async function sendWelcomeEmail(userData, accountNumber) {
                 </p>
 
                 <p style="font-size:15px;color:#555;line-height:1.6;">
-                  We're excited to have you join <b>Honstinger Bank</b>! Your new account has been successfully created.
+                  We're excited to have you join <b>FirstCBU Bank</b>! Your new account has been successfully created.
                 </p>
 
                 <table style="width:100%;margin-top:20px;border-collapse:collapse;">
@@ -57,7 +57,7 @@ async function sendWelcomeEmail(userData, accountNumber) {
               </div>
 
               <div style="background:#f1f1f1;text-align:center;padding:15px;color:#666;font-size:13px;">
-                © ${new Date().getFullYear()} Honstinger Bank. All rights reserved.
+                © ${new Date().getFullYear()} FirstCBU Bank. All rights reserved.
               </div>
             </div>
           </div>

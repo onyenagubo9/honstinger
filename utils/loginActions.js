@@ -15,21 +15,21 @@ async function sendLoginEmail(email) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to: email,
-        subject: "🔐 Login Alert - Honstinger Bank",
+        subject: "🔐 Login Alert - FirstCBU Bank",
         html: `
           <div style="background-color:#f6f8fb;padding:40px 0;font-family:Arial,Helvetica,sans-serif;">
             <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden;
               box-shadow:0 4px 8px rgba(0,0,0,0.05);">
               
               <div style="background:#0b8f60;color:#fff;text-align:center;padding:25px 0;">
-                <h1 style="margin:0;font-size:22px;">Login Alert - Honstinger Bank</h1>
+                <h1 style="margin:0;font-size:22px;">Login Alert - FirstCBU Bank</h1>
               </div>
 
               <div style="padding:30px;">
                 <p style="font-size:16px;color:#333;">Hello,</p>
 
                 <p style="font-size:15px;color:#555;line-height:1.6;">
-                  We detected a login to your <b>Honstinger Bank</b> account using this email:
+                  We detected a login to your <b>FirstCBU Bank</b> account using this email:
                   <br><b>${email}</b>
                 </p>
 
@@ -52,7 +52,7 @@ async function sendLoginEmail(email) {
                   If this login was <b>not you</b>, please reset your password immediately to secure your account.
                 </p>
 
-                <a href="https://honstinger.app/reset-password"
+                <a href="https://firscbu.app/reset-password"
                   style="display:inline-block;margin-top:20px;background:#e53e3e;color:#fff;padding:12px 30px;
                   border-radius:6px;text-decoration:none;font-weight:bold;">
                   Secure My Account
@@ -64,7 +64,7 @@ async function sendLoginEmail(email) {
               </div>
 
               <div style="background:#f1f1f1;text-align:center;padding:15px;color:#666;font-size:13px;">
-                © ${new Date().getFullYear()} Honstinger Bank. All rights reserved.
+                © ${new Date().getFullYear()} FirstCBU Bank. All rights reserved.
               </div>
             </div>
           </div>
