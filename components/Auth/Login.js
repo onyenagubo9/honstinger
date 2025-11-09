@@ -76,7 +76,7 @@ export default function LoginPage() {
             Welcome Back
           </h1>
           <p className="text-gray-500 mt-1 text-sm">
-            Sign in to your Honstinger Bank account
+            Sign in to your FirstCBU Bank account
           </p>
         </motion.div>
 
@@ -156,7 +156,7 @@ export default function LoginPage() {
           <p>
             Forgot password?{" "}
             <a
-              href="/forgot-password"
+              href="/reset-password"
               className="text-green-700 hover:underline font-medium"
             >
               Reset here
