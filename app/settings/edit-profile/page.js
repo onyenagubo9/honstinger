@@ -20,7 +20,7 @@ export default function EditProfilePage() {
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
 
-  // Fetch user data on mount
+  // ✅ Fetch user data from Firestore
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -34,59 +34,68 @@ export default function EditProfilePage() {
             address: data.address || "",
             country: data.country || "",
           });
-          setAvatar(data.avatar || "/profile.jpg");
+          setAvatar(data.avatar || "/profile.png");
         }
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Handle input change
+  // ✅ Handle text input
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Upload to Cloudinary
+  // ✅ Upload image to Cloudinary
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploading(true);
-    setMessage("Uploading image...");
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "unsigned_avatar"); // Cloudinary preset
+    setMessage("📤 Uploading image...");
 
     try {
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      // Your Cloudinary account info
+      const CLOUD_NAME =
+        process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "your_cloud_name"; // fallback
+      const UPLOAD_PRESET = "unsigned_avatar"; // preset must be unsigned in Cloudinary settings
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", UPLOAD_PRESET);
+
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       const data = await res.json();
+
       if (data.secure_url) {
         setAvatar(data.secure_url);
         setMessage("✅ Image uploaded successfully!");
       } else {
-        throw new Error("Upload failed");
+        console.error("Cloudinary upload failed:", data);
+        setMessage(`❌ Upload failed: ${data.error?.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Cloudinary upload error:", error);
-      setMessage("❌ Image upload failed.");
+      setMessage("❌ Image upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
   };
 
-  // Save user updates
+  // ✅ Save user updates
   const handleSave = async (e) => {
     e.preventDefault();
     if (!uid) return;
 
     setLoading(true);
-    setMessage("Saving changes...");
+    setMessage("💾 Saving changes...");
 
     try {
       await updateDoc(doc(db, "users", uid), {
@@ -96,7 +105,7 @@ export default function EditProfilePage() {
       setMessage("✅ Profile updated successfully!");
     } catch (error) {
       console.error(error);
-      setMessage("❌ Failed to update profile.");
+      setMessage("❌ Failed to update profile. Try again.");
     } finally {
       setLoading(false);
     }
@@ -125,7 +134,7 @@ export default function EditProfilePage() {
             <img
               src={avatar}
               alt="Profile"
-              className="w-24 h-24 rounded-full object-cover border border-green-200"
+              className="w-24 h-24 rounded-full object-cover border border-green-200 shadow-sm"
             />
             <label
               htmlFor="avatar-upload"
@@ -145,7 +154,7 @@ export default function EditProfilePage() {
             />
           </div>
           <p className="text-sm text-gray-500">
-            {uploading ? "Uploading..." : "Tap the icon to change photo"}
+            {uploading ? "Uploading..." : "Tap the camera to change photo"}
           </p>
         </div>
 
@@ -214,7 +223,7 @@ export default function EditProfilePage() {
                   ? "text-green-600"
                   : message.startsWith("❌")
                   ? "text-red-500"
-                  : "text-gray-500"
+                  : "text-gray-600"
               }`}
             >
               {message}
