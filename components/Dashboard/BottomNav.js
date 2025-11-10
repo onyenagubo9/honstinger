@@ -15,10 +15,17 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-lg flex justify-around items-center py-3 z-50">
+    <nav
+      className="
+        fixed bottom-0 left-0 w-full 
+        bg-white/90 backdrop-blur-md
+        border-t border-gray-200 shadow-lg 
+        flex justify-around items-center py-3
+        z-50 transition-all
+      "
+    >
       {navItems.map((item, i) => {
         const isActive = pathname === item.href;
-
         return (
           <Link
             key={i}
@@ -30,9 +37,17 @@ export default function BottomNav() {
             }`}
           >
             <item.icon
-              className={`w-5 h-5 ${isActive ? "scale-110" : "scale-100"}`}
+              className={`w-5 h-5 transition-transform ${
+                isActive ? "scale-110" : "scale-100"
+              }`}
             />
-            <span className="text-[10px] font-medium mt-1">{item.name}</span>
+            <span
+              className={`text-[11px] font-medium mt-1 ${
+                isActive ? "font-semibold" : ""
+              }`}
+            >
+              {item.name}
+            </span>
           </Link>
         );
       })}

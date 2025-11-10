@@ -13,36 +13,46 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { motion } from "framer-motion";
-import { Wallet, Loader2, ArrowLeft, TrendingUp } from "lucide-react";
+import {
+  Wallet,
+  Loader2,
+  ArrowLeft,
+  TrendingUp,
+  Globe2,
+} from "lucide-react";
 import Link from "next/link";
 
 export default function WalletPage() {
   const [user, setUser] = useState(null);
-  const [accountBalance, setAccountBalance] = useState(0);
+  const [accountBalance, setAccountBalance] = useState(0); // base balance in USD
   const [currencyRates, setCurrencyRates] = useState({});
-  const [rateLoading, setRateLoading] = useState(true);
+  const [selectedCurrency, setSelectedCurrency] = useState("USD");
+  const [convertedBalance, setConvertedBalance] = useState(0);
+  const [loadingRates, setLoadingRates] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const displayCurrencies = [
-    { code: "EUR", flag: "🇪🇺", name: "Euro" },
-    { code: "USD", flag: "🇺🇸", name: "US Dollar" },
-    { code: "GBP", flag: "🇬🇧", name: "British Pound" },
-    { code: "CAD", flag: "🇨🇦", name: "Canadian Dollar" },
-    { code: "CNY", flag: "🇨🇳", name: "Chinese Yuan" },
+    { code: "USD", flag: "🇺🇸", name: "US Dollar", symbol: "$" },
+    { code: "EUR", flag: "🇪🇺", name: "Euro", symbol: "€" },
+    { code: "PHP", flag: "🇵🇭", name: "Philippine Peso", symbol: "₱" },
+    { code: "GBP", flag: "🇬🇧", name: "British Pound", symbol: "£" },
+    { code: "CAD", flag: "🇨🇦", name: "Canadian Dollar", symbol: "$" },
   ];
 
-  // ✅ Fetch User and Transactions
+  // ✅ Fetch user info and transactions
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (loggedUser) => {
       if (!loggedUser) return;
 
-      const userRef = doc(db, "users", loggedUser.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        setUser({ id: loggedUser.uid, ...data });
-        setAccountBalance(data.accountBalance ?? 0);
+      try {
+        const userRef = doc(db, "users", loggedUser.uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setUser({ id: loggedUser.uid, ...data });
+          setAccountBalance(Number(data.accountBalance ?? data.balance ?? 0));
+        }
 
         const q = query(
           collection(db, "transactions"),
@@ -52,33 +62,60 @@ export default function WalletPage() {
         const txSnap = await getDocs(q);
         const txData = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setTransactions(txData);
+      } catch (error) {
+        console.error("Error loading wallet data:", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // ✅ Fetch Live Exchange Rates
+  // ✅ Fetch live exchange rates (base: USD)
   useEffect(() => {
     const fetchRates = async () => {
       try {
-        setRateLoading(true);
-        const res = await fetch("https://api.exchangerate.host/latest?base=USD");
-        const data = await res.json();
-        setCurrencyRates(data.rates || {});
+        setLoadingRates(true);
+        const response = await fetch(
+          "https://api.exchangerate.host/latest?base=USD"
+        );
+        const data = await response.json();
+        setCurrencyRates(data?.rates || {});
       } catch (err) {
-        console.error("Exchange API Error:", err);
+        console.error("Exchange rate API error:", err);
       } finally {
-        setRateLoading(false);
+        setLoadingRates(false);
       }
     };
     fetchRates();
   }, []);
 
-  // ✅ Simulate percentage change colors
-  const randomChange = () =>
-    (Math.random() * 1 - 0.5).toFixed(2); // -0.50 to +0.50%
+  // ✅ Convert balance whenever currency changes
+  useEffect(() => {
+    if (!currencyRates || !accountBalance) return;
+    const rate = currencyRates[selectedCurrency] || 1;
+    setConvertedBalance(accountBalance * rate);
+  }, [selectedCurrency, currencyRates, accountBalance]);
+
+  const getSymbol = (code) => {
+    const cur = displayCurrencies.find((c) => c.code === code);
+    return cur?.symbol || "";
+  };
+
+  const randomChange = () => (Math.random() * 1 - 0.5).toFixed(2);
+
+  const conversionSummary = () => {
+    if (!currencyRates?.EUR) return null;
+    return (
+      <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs sm:text-sm text-white/90">
+        <p>1 USD = {currencyRates.EUR?.toFixed(2)} EUR</p>
+        <p>1 USD = {currencyRates.PHP?.toFixed(2)} PHP</p>
+        <p>1 USD = {currencyRates.GBP?.toFixed(2)} GBP</p>
+        <p>1 USD = {currencyRates.CAD?.toFixed(2)} CAD</p>
+      </div>
+    );
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 sm:px-8 md:px-16 py-8">
@@ -108,14 +145,44 @@ export default function WalletPage() {
           transition={{ delay: 0.1 }}
           className="bg-linear-to-r from-green-600 to-emerald-500 text-white rounded-xl p-6 mb-6 shadow-md"
         >
-          <p className="text-sm opacity-90">Available Account Balance</p>
-          <p className="text-3xl font-bold mt-2">
-            {loading ? (
-              <Loader2 className="w-6 h-6 animate-spin inline-block" />
-            ) : (
-              `USD ${Number(accountBalance).toLocaleString()}`
-            )}
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm opacity-90">Available Account Balance</p>
+            <div className="flex items-center space-x-2">
+              <Globe2 className="w-4 h-4 opacity-80" />
+              <select
+                value={selectedCurrency}
+                onChange={(e) => setSelectedCurrency(e.target.value)}
+                className="bg-white text-green-700 px-3 py-1 text-sm rounded-lg focus:ring-2 focus:ring-white/70 outline-none"
+              >
+                {displayCurrencies.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.flag} {c.code}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {loading || loadingRates ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-white" />
+            </div>
+          ) : (
+            <motion.p
+              key={selectedCurrency}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="text-3xl font-bold mt-2 tracking-tight"
+            >
+              {getSymbol(selectedCurrency)}{" "}
+              {convertedBalance.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </motion.p>
+          )}
+
+          {conversionSummary()}
         </motion.div>
 
         {/* Trading Indices */}
@@ -124,7 +191,7 @@ export default function WalletPage() {
             <TrendingUp className="w-5 h-5 text-green-600 mr-2" /> Current Trading Indices
           </h2>
 
-          {rateLoading ? (
+          {loadingRates ? (
             <div className="flex items-center justify-center py-6 text-gray-500">
               <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading rates...
             </div>
@@ -151,6 +218,9 @@ export default function WalletPage() {
                         </span>
                       </td>
                       {displayCurrencies.map((col) => {
+                        const rate1 = currencyRates[col.code];
+                        const rate2 = currencyRates[row.code];
+                        const valid = rate1 && rate2;
                         const change = randomChange();
                         const isPositive = change > 0;
                         return (
@@ -162,66 +232,12 @@ export default function WalletPage() {
                           >
                             {row.code === col.code
                               ? "-"
-                              : `${(currencyRates[col.code] / currencyRates[row.code]).toFixed(
-                                  2
-                                )} (${change}%)`}
+                              : valid
+                              ? `${(rate1 / rate2).toFixed(2)} (${change}%)`
+                              : "—"}
                           </td>
                         );
                       })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Recent Transactions */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">
-            Recent Transactions
-          </h2>
-          {transactions.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4 text-center">
-              No transactions available.
-            </p>
-          ) : (
-            <div className="overflow-x-auto border border-gray-100 rounded-xl">
-              <table className="min-w-full text-sm">
-                <thead className="bg-green-600 text-white text-xs uppercase">
-                  <tr>
-                    <th className="py-3 px-4 text-left">Account</th>
-                    <th className="py-3 px-4 text-left">Amount</th>
-                    <th className="py-3 px-4 text-center">Type</th>
-                    <th className="py-3 px-4 text-right">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.slice(0, 5).map((t) => (
-                    <tr key={t.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4">{t.accountNumber || "—"}</td>
-                      <td className="py-3 px-4">
-                        ${t.amount?.toLocaleString() || "0.00"}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            t.type?.includes("Incoming") || t.type?.includes("Deposit")
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-600"
-                          }`}
-                        >
-                          {t.type?.includes("Incoming") ||
-                          t.type?.includes("Deposit")
-                            ? "credit"
-                            : "debit"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-600">
-                        {t.timestamp?.toDate
-                          ? t.timestamp.toDate().toLocaleString()
-                          : "—"}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
