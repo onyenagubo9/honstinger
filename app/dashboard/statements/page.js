@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { auth, db } from "@/lib/firebaseClient";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -15,14 +15,16 @@ import {
 } from "firebase/firestore";
 import {
   Download,
+  Printer,
   ArrowLeft,
   Filter,
   Loader2,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import Link from "next/link";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable"; // ✅ Correct usage
 
 export default function StatementsPage() {
   const [user, setUser] = useState(null);
@@ -33,9 +35,9 @@ export default function StatementsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const pdfRef = useRef();
+  const printRef = useRef();
 
-  // ✅ Fetch user info and transactions
+  // ✅ Fetch user info & transactions
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (loggedUser) => {
       if (!loggedUser) return;
@@ -54,6 +56,7 @@ export default function StatementsPage() {
         where("userId", "==", loggedUser.uid),
         orderBy("timestamp", "desc")
       );
+
       const snap = await getDocs(q);
       const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
       setTransactions(data);
@@ -72,18 +75,38 @@ export default function StatementsPage() {
     return matchesType && matchesDate;
   });
 
-  // ✅ Generate PDF
+  // ✅ Generate PDF with branding
   const downloadStatement = () => {
-    const pdf = new jsPDF();
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Account Statement", 14, 20);
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Account Holder: ${user?.name || "—"}`, 14, 30);
-    pdf.text(`Account Number: ${user?.accountNumber || "—"}`, 14, 37);
-    pdf.text(`Available Balance: ${user?.currency || "USD"} ${accountBalance.toLocaleString()}`, 14, 44);
-    pdf.text(`Generated: ${new Date().toLocaleString()}`, 14, 51);
+    if (typeof window === "undefined") return;
 
+    const pdf = new jsPDF("p", "pt", "a4");
+    const green = "#16a34a";
+
+    // Header Branding
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(22);
+    pdf.setTextColor(green);
+    pdf.text("FirstCBU Bank", 40, 40);
+    pdf.setFontSize(12);
+    pdf.setTextColor("#333");
+    pdf.text("Official Account Statement", 40, 60);
+
+    pdf.setDrawColor(green);
+    pdf.line(40, 70, 550, 70);
+
+    // User Info
+    pdf.setFontSize(10);
+    pdf.text(`Account Holder: ${user?.name || "—"}`, 40, 95);
+    pdf.text(`Account Number: ${user?.accountNumber || "—"}`, 40, 110);
+    pdf.text(`Currency: ${user?.currency || "USD"}`, 40, 125);
+    pdf.text(
+      `Available Balance: ${user?.currency || "USD"} ${accountBalance.toLocaleString()}`,
+      40,
+      140
+    );
+    pdf.text(`Generated: ${new Date().toLocaleString()}`, 40, 155);
+
+    // Transactions Table
     const tableData = filteredTransactions.map((t) => [
       new Date(t.timestamp?.toDate()).toLocaleDateString(),
       t.type,
@@ -92,13 +115,69 @@ export default function StatementsPage() {
       t.status || "Pending",
     ]);
 
-    pdf.autoTable({
-      startY: 60,
+    autoTable(pdf, {
+      startY: 180,
       head: [["Date", "Type", "Description", "Amount", "Status"]],
       body: tableData,
+      styles: {
+        fontSize: 9,
+        textColor: "#333",
+      },
+      headStyles: {
+        fillColor: green,
+        textColor: "#fff",
+        fontStyle: "bold",
+      },
+      alternateRowStyles: { fillColor: "#f8f9fa" },
+      margin: { left: 40, right: 40 },
     });
 
-    pdf.save(`Statement_${user?.accountNumber || "Account"}.pdf`);
+    pdf.setFontSize(9);
+    pdf.setTextColor("#666");
+    pdf.text(
+      "This statement is auto-generated and verified by FirstCBU Bank.",
+      40,
+      pdf.lastAutoTable.finalY + 25
+    );
+
+    pdf.save(`FirstCBU_Statement_${user?.accountNumber || "Account"}.pdf`);
+  };
+
+  // ✅ Print Statement
+  const printStatement = () => {
+    const printContents = printRef.current.innerHTML;
+    const printWindow = window.open("", "", "height=900,width=1000");
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>FirstCBU Account Statement</title>
+          <style>
+            body { font-family: 'Arial', sans-serif; padding: 40px; color: #333; }
+            header { text-align: center; margin-bottom: 30px; }
+            h1 { color: #16a34a; font-size: 24px; margin-bottom: 5px; }
+            p { font-size: 13px; color: #555; }
+            table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+            th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; }
+            th { background-color: #16a34a; color: white; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            footer { margin-top: 30px; text-align: center; font-size: 11px; color: #777; }
+          </style>
+        </head>
+        <body>
+          <header>
+            <h1>FirstCBU Bank</h1>
+            <p>Official Account Statement</p>
+            <hr style="border: none; height: 2px; background: #16a34a; width: 80px; margin: 10px auto;">
+          </header>
+          ${printContents}
+          <footer>
+            © ${new Date().getFullYear()} FirstCBU Bank. All rights reserved.
+          </footer>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
   return (
@@ -107,7 +186,7 @@ export default function StatementsPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="max-w-5xl mx-auto bg-white border border-gray-100 rounded-2xl shadow-md p-6 sm:p-8"
+        className="max-w-5xl mx-auto bg-white border border-gray-100 rounded-2xl shadow-lg p-6 sm:p-8"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -117,83 +196,60 @@ export default function StatementsPage() {
           >
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
           </Link>
-          <button
-            onClick={downloadStatement}
-            className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition"
-          >
-            <Download className="w-4 h-4 mr-2" /> Download PDF
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={printStatement}
+              className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition"
+            >
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </button>
+            <button
+              onClick={downloadStatement}
+              className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition"
+            >
+              <Download className="w-4 h-4 mr-2" /> Download PDF
+            </button>
+          </div>
         </div>
 
         {/* Account Info */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-green-50 border border-green-100 rounded-xl p-5 mb-6"
-        >
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-gray-500 text-sm">Account Holder</p>
-              <p className="text-lg font-bold text-gray-800">
-                {user?.name || "N/A"}
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                Account No: {user?.accountNumber || "—"}
-              </p>
+        <div ref={printRef}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-linear-to-r from-green-50 to-emerald-50 border border-green-100 rounded-xl p-6 mb-6"
+          >
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="flex items-center space-x-2 mb-1">
+                  <Building2 className="w-5 h-5 text-green-600" />
+                  <p className="text-lg font-bold text-green-700">FirstCBU Bank</p>
+                </div>
+                <p className="text-gray-500 text-sm">Account Holder</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {user?.name || "N/A"}
+                </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Account No: {user?.accountNumber || "—"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 text-sm">Available Account Balance</p>
+                <p className="text-2xl font-bold text-gray-800 flex items-center justify-end space-x-1">
+                  <span>
+                    {user?.currency || "USD"} {accountBalance.toLocaleString()}
+                  </span>
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                </p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-gray-500 text-sm">Available Account Balance</p>
-              <p className="text-2xl font-bold text-gray-800 flex items-center justify-end space-x-1">
-                <span>
-                  {user?.currency || "USD"} {accountBalance.toLocaleString()}
-                </span>
-                <CreditCard className="w-5 h-5 text-green-600" />
-              </p>
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-          <div className="flex items-center space-x-2">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 outline-none"
-            >
-              <option value="All">All Transactions</option>
-              <option value="Transfer">Transfers</option>
-              <option value="Bill">Bill Payments</option>
-              <option value="Deposit">Deposits</option>
-              <option value="Withdraw">Withdrawals</option>
-            </select>
-          </div>
-
-          <div className="flex space-x-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 outline-none"
-            />
-            <span className="text-gray-400 mt-2">–</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-green-600 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Transactions Table */}
-        <div className="overflow-x-auto" ref={pdfRef}>
+          {/* Transactions Table */}
           {loading ? (
             <div className="flex items-center justify-center py-10 text-gray-500">
-              <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading
-              Transactions...
+              <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading Transactions...
             </div>
           ) : filteredTransactions.length === 0 ? (
             <p className="text-center text-gray-500 py-10 text-sm">
@@ -201,7 +257,7 @@ export default function StatementsPage() {
             </p>
           ) : (
             <table className="w-full text-sm border-t border-gray-100">
-              <thead className="bg-gray-50 text-gray-700 text-xs uppercase">
+              <thead className="bg-green-600 text-white text-xs uppercase">
                 <tr>
                   <th className="py-3 px-4 text-left">Date</th>
                   <th className="py-3 px-4 text-left">Type</th>
@@ -216,7 +272,7 @@ export default function StatementsPage() {
                     key={t.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="border-b border-gray-50 hover:bg-gray-50 transition"
+                    className="border-b border-gray-100 hover:bg-green-50 transition"
                   >
                     <td className="py-3 px-4 text-gray-700">
                       {new Date(t.timestamp?.toDate()).toLocaleDateString()}
@@ -229,7 +285,7 @@ export default function StatementsPage() {
                         t.type?.includes("Bill") ||
                         t.type?.includes("Withdraw")
                           ? "text-red-600"
-                          : "text-green-600"
+                          : "text-green-700"
                       }`}
                     >
                       {user?.currency || "USD"} {t.amount.toLocaleString()}
