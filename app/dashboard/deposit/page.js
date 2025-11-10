@@ -171,7 +171,7 @@ export default function DepositPage() {
               <div className="mt-4 bg-white border border-gray-200 rounded-lg p-3 text-sm">
                 <p className="font-semibold text-gray-700">
                   Bank Name:{" "}
-                  <span className="text-gray-900">Honstinger Financial</span>
+                  <span className="text-gray-900">FirstCBU Financial</span>
                 </p>
                 <p className="font-semibold text-gray-700">
                   Account Number:{" "}
