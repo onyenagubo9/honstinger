@@ -193,7 +193,7 @@ export default function CardsPage() {
                     <p>{showDetails ? card.expiry : "**/**"}</p>
                   </div>
                   <p className="text-lg font-semibold tracking-wider">
-                    Honstinger Bank
+                    FirstCBU Bank
                   </p>
                 </div>
               </div>
