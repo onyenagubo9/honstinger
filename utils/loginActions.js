@@ -1,16 +1,17 @@
 "use client";
 
-import { auth } from "@/lib/firebaseClient";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebaseClient";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 /**
- * ✅ Sends a professionally styled login alert email
+ * 🚨 SENDS LOGIN ALERT EMAIL (Updated Template)
  */
 async function sendLoginEmail(email) {
   try {
     const loginTime = new Date().toLocaleString();
 
-    const res = await fetch("/api/send-email", {
+    await fetch("/api/send-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -20,7 +21,7 @@ async function sendLoginEmail(email) {
           <div style="background-color:#f6f8fb;padding:40px 0;font-family:Arial,Helvetica,sans-serif;">
             <div style="max-width:600px;margin:auto;background:#ffffff;border-radius:10px;overflow:hidden;
               box-shadow:0 4px 8px rgba(0,0,0,0.05);">
-              
+
               <div style="background:#0b8f60;color:#fff;text-align:center;padding:25px 0;">
                 <h1 style="margin:0;font-size:22px;">Login Alert - FirstCBU Bank</h1>
               </div>
@@ -29,7 +30,7 @@ async function sendLoginEmail(email) {
                 <p style="font-size:16px;color:#333;">Hello,</p>
 
                 <p style="font-size:15px;color:#555;line-height:1.6;">
-                  We detected a login to your <b>FirstCBU Bank</b> account using this email:
+                  A login was detected on your <b>FirstCBU Bank</b> account using:
                   <br><b>${email}</b>
                 </p>
 
@@ -49,17 +50,17 @@ async function sendLoginEmail(email) {
                 </table>
 
                 <p style="margin-top:25px;font-size:15px;color:#555;line-height:1.6;">
-                  If this login was <b>not you</b>, please reset your password immediately to secure your account.
+                  If this login was <b>NOT YOU</b>, please reset your password immediately.
                 </p>
 
-                <a href="https://firscbu.app/reset-password"
+                <a href="https://firstcbu.app/reset-password"
                   style="display:inline-block;margin-top:20px;background:#e53e3e;color:#fff;padding:12px 30px;
                   border-radius:6px;text-decoration:none;font-weight:bold;">
                   Secure My Account
                 </a>
 
                 <p style="margin-top:30px;color:#999;font-size:13px;">
-                  This message was sent automatically by Honstinger Bank for your security.
+                  This email was sent automatically for your security.
                 </p>
               </div>
 
@@ -71,60 +72,80 @@ async function sendLoginEmail(email) {
         `,
       }),
     });
-
-    if (!res.ok) {
-      console.error("❌ Login alert email failed to send");
-    } else {
-      console.log("✅ Login alert email sent successfully");
-    }
-  } catch (error) {
-    console.error("❌ Email send error:", error);
+  } catch (err) {
+    console.error("❌ Email send error:", err);
   }
 }
 
 /**
- * ✅ Logs the user in via Firebase Authentication
+ * 🚀 SECURE LOGIN FUNCTION WITH ACCOUNT STATUS CHECK
  */
 export async function loginUser({ email, password }) {
   try {
-    // 1️⃣ Sign in user using Firebase Auth
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
+    // 1️⃣ Login with Firebase Auth
+    const userCred = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCred.user;
 
-    console.log("✅ User logged in successfully:", user.email);
+    // 2️⃣ Fetch user info from Firestore
+    const userRef = doc(db, "users", user.uid);
+    const snap = await getDoc(userRef);
 
-    // 2️⃣ Send login alert email
+    if (!snap.exists()) {
+      await signOut(auth);
+      return { success: false, message: "Account data not found." };
+    }
+
+    const userData = snap.data();
+
+    // 3️⃣ BLOCK SUSPENDED USERS
+    if (userData.accountStatus === "Suspended") {
+      await signOut(auth);
+      return {
+        success: false,
+        message: "Your account has been suspended. Contact support.",
+      };
+    }
+
+    // 4️⃣ BLOCK CLOSED ACCOUNTS
+    if (userData.accountStatus === "Closed") {
+      await signOut(auth);
+      return {
+        success: false,
+        message: "Your account has been closed.",
+      };
+    }
+
+    // 5️⃣ Send login alert email (ACTIVE ACCOUNTS ONLY)
     await sendLoginEmail(email);
 
-    return { success: true, message: "Login successful", user };
+    return {
+      success: true,
+      message: "Login successful.",
+      user,
+    };
   } catch (error) {
-    console.error("❌ Login error:", error.code, error.message);
+    console.error("Login Error:", error.code, error.message);
 
-    // 3️⃣ Handle all common Firebase login errors
-    let errorMessage = "Unexpected error. Please try again later.";
+    let errorMessage = "Something went wrong.";
 
     switch (error.code) {
       case "auth/user-not-found":
-        errorMessage = "User not found. Please sign up first.";
+        errorMessage = "User not found.";
         break;
       case "auth/wrong-password":
-        errorMessage = "Incorrect password. Please try again.";
+        errorMessage = "Incorrect password.";
         break;
       case "auth/invalid-email":
-        errorMessage = "Invalid email address.";
-        break;
-      case "auth/invalid-credential":
-        errorMessage =
-          "Invalid credentials or unauthorized domain. Make sure your domain is added in Firebase Auth settings.";
-        break;
-      case "auth/network-request-failed":
-        errorMessage = "Network error. Please check your internet connection.";
+        errorMessage = "Invalid email format.";
         break;
       case "auth/too-many-requests":
-        errorMessage = "Too many failed login attempts. Try again later.";
+        errorMessage = "Too many login attempts. Try again later.";
+        break;
+      case "auth/network-request-failed":
+        errorMessage = "Check your internet connection.";
         break;
       default:
-        errorMessage = error.message || "An unexpected error occurred.";
+        errorMessage = error.message;
     }
 
     return { success: false, message: errorMessage };
