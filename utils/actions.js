@@ -120,6 +120,7 @@ export async function registerUser(formData) {
         MYR: 0,
         PHP: 0,
         JPY: 0,
+        THB: 0,
       },
 
       status: "Active",
