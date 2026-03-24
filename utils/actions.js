@@ -109,14 +109,25 @@ export async function registerUser(formData) {
       country,
       accountType,
       accountNumber,
+
+      // 🌍 Default currency
       currency: "USD",
-      balance: 0,
+
+      // 💱 NEW: Multi-currency balances
+      balances: {
+        USD: 0,
+        EUR: 0,
+        MYR: 0,
+        PHP: 0,
+        JPY: 0,
+      },
+
       status: "Active",
-      avatar: "", // placeholder for later profile upload
+      avatar: "",
       createdAt: serverTimestamp(),
     };
 
-    // 4️⃣ Save user info to Firestore using UID as doc ID
+    // 4️⃣ Save user to Firestore
     await setDoc(doc(db, "users", user.uid), userDetails);
 
     // 5️⃣ Send welcome email
@@ -124,6 +135,7 @@ export async function registerUser(formData) {
 
     console.log("✅ User registered successfully!");
     return { success: true, message: "Account created successfully!", user };
+
   } catch (error) {
     console.error("❌ Registration error:", error);
     return { success: false, message: error.message };
